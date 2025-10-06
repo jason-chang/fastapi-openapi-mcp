@@ -26,23 +26,16 @@ FastAPI OpenAPI MCP Server 是一个用于 FastAPI 应用的 MCP 服务器实现
 
 ### MCP Tools
 
-| Status | Tool 名称 | 描述 |
-|--------|------|------|
-| ⭐ | `list_openapi_endpoints` | 列出所有 API 接口（按标签分组） |
-| ⭐ | `get_endpoint_details` | 获取接口详细信息（含认证、示例、废弃状态） |
-| ⭐ | `search_endpoints_by_tag` | 按标签搜索接口 |
-| ⭐ | `get_api_models` | 获取数据模型列表摘要 |
-| ⭐ | `get_model_details` | 获取单个模型的完整定义（含引用解析） |
-| ⭐ | `search_endpoints` | 关键词搜索接口（路径、摘要、描述） |
-| ⭐ | `get_auth_requirements` | 查询接口的认证要求 |
-| ⭐ | `get_endpoint_examples` | 获取接口的请求/响应示例 |
-| ⭐ | `get_tags_list` | 列出所有可用的标签及描述 |
+// TODO
+
+### MCP Tools
+
+// TODO
 
 ### 访问方式
 
 - ✅ **JSON-RPC 2.0** - 标准 MCP 协议
-- ✅ **Server-Sent Events (SSE)** - 实时推送
-- ✅ **REST API** - 便于调试和测试
+- ✅ **Streamable HTTP** - 流式 HTTP
 
 ## 🏗️ 架构设计
 
@@ -148,11 +141,11 @@ uv sync
 uv sync
 
 # 使用 MCP Inspector 测试
-npx @modelcontextprotocol/inspector uv run python examples/mcp_inspector_test.py
+npx @modelcontextprotocol/inspector uv run python examples/mcp_stdio_example.py
 ```
 
 这会打开一个 Web 界面（`http://localhost:5173`），让你可以：
-- ✅ 查看所有 9 个 MCP 工具
+- ✅ 查看所有 MCP Tools 和 Resources
 - ✅ 交互式调用工具
 - ✅ 实时查看返回结果
 
@@ -194,7 +187,7 @@ from openapi_mcp import OpenApiMcpServer, OpenApiMcpConfig
 config = OpenApiMcpConfig(
     cache_enabled=True,
     cache_ttl=600,  # 10分钟缓存
-    prefix='/api-mcp',
+    prefix='/openapi-mcp',
     output_format='markdown',
 )
 
@@ -218,82 +211,6 @@ def tool_filter(path: str, method: str, endpoint_info: dict) -> bool:
 config = OpenApiMcpConfig(tool_filter=tool_filter)
 mcp_server = OpenApiMcpServer(app, config=config)
 ```
-
-## 📋 开发计划
-
-### 阶段一：核心 Library 开发（3-4 天）
-
-#### 1.1 项目基础搭建
-- [x] 创建项目目录结构
-- [x] 编写 README.md
-- [ ] 配置 `pyproject.toml`
-- [ ] 设置代码规范（ruff, basedpyright）
-- [ ] 初始化测试框架
-
-#### 1.2 实现高优先级 Tools
-- [ ] 迁移 `list_openapi_endpoints`
-- [ ] 增强 `get_endpoint_details`
-  - [ ] 添加认证要求字段
-  - [ ] 添加请求/响应示例
-  - [ ] 标注废弃状态
-- [ ] 迁移 `search_endpoints_by_tag`
-- [ ] 优化 `get_api_models`（只返回摘要）
-- [ ] 新增 `get_model_details`
-  - [ ] 解析字段定义
-  - [ ] 解析 `$ref` 引用
-  - [ ] 显示验证规则
-- [ ] 新增 `search_endpoints`
-  - [ ] 路径模糊匹配
-  - [ ] 关键词搜索
-
-#### 1.3 实现中优先级 Tools
-- [ ] 新增 `get_auth_requirements`
-- [ ] 新增 `get_endpoint_examples`
-- [ ] 新增 `get_tags_list`
-
-### 阶段二：增强功能（2 天）
-
-#### 2.1 缓存机制
-- [ ] 实现 OpenAPI schema 缓存
-- [ ] 支持缓存过期时间
-- [ ] 提供手动清除缓存接口
-
-#### 2.2 扩展系统
-- [ ] 定义 Tool 基类
-- [ ] 支持自定义 Tools
-- [ ] Tool 注册机制
-
-#### 2.3 安全和过滤
-- [ ] 工具过滤器实现
-- [ ] 敏感信息脱敏
-- [ ] 访问日志
-
-#### 2.4 输出格式化
-- [ ] Markdown 格式化器
-- [ ] JSON 格式化器
-- [ ] Plain text 格式化器
-- [ ] 输出长度限制
-
-### 阶段三：文档和发布（2 天）
-
-#### 3.1 文档完善
-- [ ] API 文档
-- [ ] 集成示例（FastAPI）
-- [ ] 最佳实践指南
-- [ ] 常见问题 FAQ
-
-#### 3.2 测试
-- [ ] 单元测试（覆盖率 > 80%）
-- [ ] 集成测试
-- [ ] 示例项目测试
-- [ ] 性能测试
-
-#### 3.3 发布准备
-- [ ] 版本号规范（Semantic Versioning）
-- [ ] CHANGELOG.md
-- [ ] LICENSE
-- [ ] GitHub CI/CD
-- [ ] PyPI 发布配置
 
 ## 🔧 高级功能
 
@@ -337,54 +254,11 @@ mcp_server = OpenApiMcpServer(app, config=config)
 
 ### MCP Tools 详细说明
 
-#### `list_openapi_endpoints`
+// TODO
 
-列出所有 API 接口，按标签分组显示。
+### MCP Resources 详细说明
 
-**参数**: 无
-
-**返回示例**:
-```markdown
-🚀 **Available API Endpoints:**
-
-## 📁 Users
-- **GET** `/api/v1/users` - List all users
-- **POST** `/api/v1/users` - Create new user
-
-## 📁 Items
-- **GET** `/api/v1/items` - List all items
-
-📊 **Total endpoints:** 3
-```
-
-#### `get_endpoint_details`
-
-获取指定接口的详细信息。
-
-**参数**:
-- `path` (string, required): 接口路径，例如 `/api/v1/users`
-- `method` (string, required): HTTP 方法，例如 `GET`
-
-**返回**: 包含参数、请求体、响应、认证要求、示例等完整信息
-
-#### `search_endpoints`
-
-通过关键词搜索接口。
-
-**参数**:
-- `keyword` (string, required): 搜索关键词
-- `search_in` (string, optional): 搜索范围 - `path`, `summary`, `description`, `all` (默认)
-
-**返回**: 匹配的接口列表
-
-#### `get_model_details`
-
-获取数据模型的完整定义。
-
-**参数**:
-- `model_name` (string, required): 模型名称
-
-**返回**: 模型的所有字段、类型、验证规则、引用关系等
+// TODO
 
 ## 🤝 贡献指南
 

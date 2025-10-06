@@ -9,7 +9,7 @@ from typing import Any
 
 import pytest
 
-from openapi_mcp.security import AccessLogger, SensitiveDataMasker, ToolFilter
+from openapi_mcp.security import AccessLogger, ResourceAccessControl, SensitiveDataMasker, ToolFilter
 
 
 class TestToolFilter:
@@ -447,3 +447,140 @@ class TestSecurityIntegration:
 		assert '***' in caplog.text
 		assert 'admin123' not in caplog.text
 		assert 'secret_token' not in caplog.text
+
+
+class TestResourceAccessControl:
+	"""测试 Resource 访问控制器"""
+
+	def test_default_allow_all(self) -> None:
+		"""测试默认允许所有资源访问"""
+		control = ResourceAccessControl()
+
+		assert control.can_access('openapi://spec')
+		assert control.can_access('openapi://endpoints')
+		assert control.can_access('any://resource')
+
+	def test_blocked_patterns(self) -> None:
+		"""测试禁止模式"""
+		control = ResourceAccessControl(
+			blocked_patterns=['openapi://admin/*', 'secret://*']
+		)
+
+		# 允许的资源
+		assert control.can_access('openapi://spec')
+		assert control.can_access('openapi://endpoints')
+		assert control.can_access('public://data')
+
+		# 禁止的资源
+		assert not control.can_access('openapi://admin/users')
+		assert not control.can_access('openapi://admin/settings')
+		assert not control.can_access('secret://key')
+
+	def test_allowed_patterns(self) -> None:
+		"""测试允许模式"""
+		control = ResourceAccessControl(
+			allowed_patterns=['openapi://spec', 'openapi://endpoints/*'],
+			default_allow=False
+		)
+
+		# 允许的资源
+		assert control.can_access('openapi://spec')
+		assert control.can_access('openapi://endpoints')
+		assert control.can_access('openapi://endpoints/users')
+
+		# 禁止的资源
+		assert not control.can_access('openapi://models')
+		assert not control.can_access('openapi://tags')
+		assert not control.can_access('other://resource')
+
+	def test_mixed_patterns(self) -> None:
+		"""测试混合模式（允许和禁止）"""
+		control = ResourceAccessControl(
+			allowed_patterns=['openapi://*', 'public://*'],
+			blocked_patterns=['openapi://admin/*'],
+			default_allow=False
+		)
+
+		# 允许的资源
+		assert control.can_access('openapi://spec')
+		assert control.can_access('openapi://endpoints')
+		assert control.can_access('public://data')
+
+		# 禁止的资源（优先级高于允许列表）
+		assert not control.can_access('openapi://admin/users')
+		assert not control.can_access('openapi://admin/settings')
+
+		# 不在允许列表中的资源
+		assert not control.can_access('secret://key')
+		assert not control.can_access('private://data')
+
+	def test_wildcard_patterns(self) -> None:
+		"""测试通配符模式"""
+		control = ResourceAccessControl(
+			allowed_patterns=['openapi://*/spec', 'openapi://v*/endpoints'],
+			default_allow=False
+		)
+
+		# 匹配通配符
+		assert control.can_access('openapi://v1/spec')
+		assert control.can_access('openapi://v2/spec')
+		assert control.can_access('openapi://v1/endpoints')
+		assert control.can_access('openapi://v2/endpoints')
+
+		# 不匹配通配符
+		assert not control.can_access('openapi://v1/models')
+		assert not control.can_access('openapi://models/spec')
+
+	def test_exact_match_priority(self) -> None:
+		"""测试精确匹配优先级"""
+		control = ResourceAccessControl(
+			allowed_patterns=['openapi://spec'],
+			blocked_patterns=['openapi://spec'],
+			default_allow=True
+		)
+
+		# 禁止列表应该优先级更高
+		assert not control.can_access('openapi://spec')
+
+
+class TestResourceAccessControlIntegration:
+	"""测试 Resource 访问控制集成"""
+
+	def test_access_logger_with_resource_control(self) -> None:
+		"""测试访问日志记录器集成资源访问控制"""
+		# 没有访问控制时，总是允许
+		logger = AccessLogger()
+		assert logger.can_access_resource('any://resource')
+
+		# 有访问控制时
+		control = ResourceAccessControl(allowed_patterns=['openapi://spec'])
+		logger = AccessLogger(resource_access_control=control)
+
+		assert logger.can_access_resource('openapi://spec')
+		assert not logger.can_access_resource('openapi://admin/users')
+
+	def test_log_resource_access(self, caplog: pytest.LogCaptureFixture) -> None:
+		"""测试资源访问日志记录"""
+		logger = AccessLogger()
+
+		with caplog.at_level(logging.INFO):
+			logger.log_resource_access('openapi://spec', session_id='session123', duration=0.5)
+
+		assert 'openapi://spec' in caplog.text
+		assert 'session123' in caplog.text
+		assert '500.0' in caplog.text  # duration in ms
+
+	def test_log_resource_access_denied(self, caplog: pytest.LogCaptureFixture) -> None:
+		"""测试资源访问拒绝日志记录"""
+		logger = AccessLogger()
+
+		with caplog.at_level(logging.WARNING):
+			logger.log_resource_access_denied(
+				'openapi://admin/users',
+				reason='Blocked by pattern',
+				session_id='session123'
+			)
+
+		assert 'openapi://admin/users' in caplog.text
+		assert 'Blocked by pattern' in caplog.text
+		assert 'denied' in caplog.text

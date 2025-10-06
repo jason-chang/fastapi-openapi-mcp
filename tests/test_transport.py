@@ -487,3 +487,215 @@ async def test_session_reuse(mcp_server, async_client: AsyncClient):
 		)
 		assert response.status_code == 200
 		assert 'result' in response.json()
+
+
+# ===== 测试 Resources 功能 =====
+
+
+async def test_resources_list(mcp_server, async_client: AsyncClient):
+	"""测试 resources/list 方法"""
+	# 先初始化
+	init_response = await async_client.post(
+		'/mcp',
+		json={'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {}},
+		headers={'Mcp-Protocol-Version': MCP_PROTOCOL_VERSION},
+	)
+	session_id = init_response.headers['Mcp-Session-Id']
+
+	# 请求 resources/list
+	response = await async_client.post(
+		'/mcp',
+		json={'jsonrpc': '2.0', 'id': 2, 'method': 'resources/list'},
+		headers={
+			'Mcp-Protocol-Version': MCP_PROTOCOL_VERSION,
+			'Mcp-Session-Id': session_id,
+		},
+	)
+
+	assert response.status_code == 200
+	data = response.json()
+	assert 'result' in data
+	assert 'resources' in data['result']
+	assert len(data['result']['resources']) > 0
+
+	# 验证缓存头
+	assert 'cache-control' in response.headers
+	assert 'max-age=300' in response.headers['cache-control']
+
+
+async def test_resources_read_spec(mcp_server, async_client: AsyncClient):
+	"""测试读取 OpenAPI spec 资源"""
+	# 先初始化
+	init_response = await async_client.post(
+		'/mcp',
+		json={'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {}},
+		headers={'Mcp-Protocol-Version': MCP_PROTOCOL_VERSION},
+	)
+	session_id = init_response.headers['Mcp-Session-Id']
+
+	# 读取 OpenAPI spec
+	response = await async_client.post(
+		'/mcp',
+		json={
+			'jsonrpc': '2.0',
+			'id': 2,
+			'method': 'resources/read',
+			'params': {'uri': 'openapi://spec'},
+		},
+		headers={
+			'Mcp-Protocol-Version': MCP_PROTOCOL_VERSION,
+			'Mcp-Session-Id': session_id,
+		},
+	)
+
+	assert response.status_code == 200
+	data = response.json()
+	assert 'result' in data
+	assert 'contents' in data['result']
+	assert len(data['result']['contents']) > 0
+
+	content = data['result']['contents'][0]
+	assert content['type'] == 'text'
+	assert 'openapi' in content['text'].lower() or 'swagger' in content['text'].lower()
+
+	# 验证缓存头
+	assert 'cache-control' in response.headers
+	assert 'max-age=300' in response.headers['cache-control']
+
+
+async def test_resources_read_endpoints(mcp_server, async_client: AsyncClient):
+	"""测试读取端点列表资源"""
+	# 先初始化
+	init_response = await async_client.post(
+		'/mcp',
+		json={'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {}},
+		headers={'Mcp-Protocol-Version': MCP_PROTOCOL_VERSION},
+	)
+	session_id = init_response.headers['Mcp-Session-Id']
+
+	# 读取端点列表
+	response = await async_client.post(
+		'/mcp',
+		json={
+			'jsonrpc': '2.0',
+			'id': 2,
+			'method': 'resources/read',
+			'params': {'uri': 'openapi://endpoints'},
+		},
+		headers={
+			'Mcp-Protocol-Version': MCP_PROTOCOL_VERSION,
+			'Mcp-Session-Id': session_id,
+		},
+	)
+
+	assert response.status_code == 200
+	data = response.json()
+	assert 'result' in data
+	assert 'contents' in data['result']
+	assert len(data['result']['contents']) > 0
+
+	content = data['result']['contents'][0]
+	assert content['type'] == 'text'
+	# 验证返回的是端点信息
+	assert 'endpoints' in content['text'] or 'paths' in content['text']
+
+
+async def test_resources_read_invalid_uri(mcp_server, async_client: AsyncClient):
+	"""测试读取不存在的资源 URI"""
+	# 先初始化
+	init_response = await async_client.post(
+		'/mcp',
+		json={'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {}},
+		headers={'Mcp-Protocol-Version': MCP_PROTOCOL_VERSION},
+	)
+	session_id = init_response.headers['Mcp-Session-Id']
+
+	# 尝试读取不存在的资源
+	response = await async_client.post(
+		'/mcp',
+		json={
+			'jsonrpc': '2.0',
+			'id': 2,
+			'method': 'resources/read',
+			'params': {'uri': 'openapi://nonexistent'},
+		},
+		headers={
+			'Mcp-Protocol-Version': MCP_PROTOCOL_VERSION,
+			'Mcp-Session-Id': session_id,
+		},
+	)
+
+	assert response.status_code == 200
+	data = response.json()
+	assert 'error' in data
+	assert data['error']['code'] == -32602  # INVALID_PARAMS
+
+
+async def test_resources_read_missing_uri(mcp_server, async_client: AsyncClient):
+	"""测试缺少 URI 参数的资源读取请求"""
+	# 先初始化
+	init_response = await async_client.post(
+		'/mcp',
+		json={'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {}},
+		headers={'Mcp-Protocol-Version': MCP_PROTOCOL_VERSION},
+	)
+	session_id = init_response.headers['Mcp-Session-Id']
+
+	# 缺少 URI 参数
+	response = await async_client.post(
+		'/mcp',
+		json={
+			'jsonrpc': '2.0',
+			'id': 2,
+			'method': 'resources/read',
+			'params': {},  # 缺少 uri 参数
+		},
+		headers={
+			'Mcp-Protocol-Version': MCP_PROTOCOL_VERSION,
+			'Mcp-Session-Id': session_id,
+		},
+	)
+
+	assert response.status_code == 200
+	data = response.json()
+	assert 'error' in data
+	assert data['error']['code'] == -32602  # INVALID_PARAMS
+
+
+async def test_resources_with_sse_stream(mcp_server, async_client: AsyncClient):
+	"""测试 Resources 操作通过 SSE 流返回"""
+	# 先初始化
+	init_response = await async_client.post(
+		'/mcp',
+		json={'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {}},
+		headers={'Mcp-Protocol-Version': MCP_PROTOCOL_VERSION},
+	)
+	session_id = init_response.headers['Mcp-Session-Id']
+
+	# 通过 SSE 流请求资源列表
+	response = await async_client.post(
+		'/mcp',
+		json={'jsonrpc': '2.0', 'id': 2, 'method': 'resources/list'},
+		headers={
+			'Mcp-Protocol-Version': MCP_PROTOCOL_VERSION,
+			'Mcp-Session-Id': session_id,
+			'Accept': 'text/event-stream',
+		},
+	)
+
+	assert response.status_code == 200
+	assert response.headers['content-type'] == 'text/event-stream; charset=utf-8'
+	assert 'Mcp-Session-Id' in response.headers
+
+	# 验证 SSE 数据格式
+	content = response.text
+	assert content.startswith('data: ')
+
+	# 解析 SSE 数据
+	import json
+	data_start = content.find('data: ') + 6
+	data_end = content.find('\n\n', data_start)
+	json_data = json.loads(content[data_start:data_end])
+
+	assert 'result' in json_data
+	assert 'resources' in json_data['result']

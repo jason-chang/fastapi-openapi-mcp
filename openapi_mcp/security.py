@@ -328,6 +328,94 @@ class SensitiveDataMasker:
 		return result
 
 
+class ResourceAccessControl:
+	"""Resource 访问控制器
+
+	控制对 Resources 的访问权限，支持基于 URI 模式的访问控制。
+
+	Example:
+		>>> # 基本使用
+		>>> control = ResourceAccessControl()
+		>>> allowed = control.can_access('openapi://spec')
+		>>>
+		>>> # 限制特定资源访问
+		>>> control = ResourceAccessControl(
+		...     blocked_patterns=['openapi://admin/*'],
+		...     allowed_patterns=['openapi://public/*', 'openapi://spec']
+		... )
+		>>> allowed = control.can_access('openapi://admin/users')
+	"""
+
+	def __init__(
+		self,
+		allowed_patterns: list[str] | None = None,
+		blocked_patterns: list[str] | None = None,
+		default_allow: bool = True,
+	) -> None:
+		"""初始化 Resource 访问控制器
+
+		Args:
+			allowed_patterns: 允许访问的 URI 模式列表，支持通配符 *
+			blocked_patterns: 禁止访问的 URI 模式列表
+			default_allow: 默认是否允许访问（当不匹配任何规则时）
+		"""
+		self.allowed_patterns = allowed_patterns or []
+		self.blocked_patterns = blocked_patterns or []
+		self.default_allow = default_allow
+
+		# 将通配符模式转换为正则表达式
+		self._allowed_regexes = [
+			re.compile(self._pattern_to_regex(pattern))
+			for pattern in self.allowed_patterns
+		]
+		self._blocked_regexes = [
+			re.compile(self._pattern_to_regex(pattern))
+			for pattern in self.blocked_patterns
+		]
+
+	def _pattern_to_regex(self, pattern: str) -> str:
+		"""将通配符模式转换为正则表达式
+
+		Args:
+			pattern: 通配符模式，如 'openapi://admin/*'
+
+		Returns:
+			正则表达式字符串
+		"""
+		# 转义正则表达式特殊字符（除了 *）
+		escaped = re.escape(pattern)
+		# 将 \* 替换为正则表达式的 .*
+		regex = escaped.replace(r'\*', '.*')
+		return f'^{regex}$'
+
+	def can_access(self, uri: str) -> bool:
+		"""判断是否允许访问指定的 Resource
+
+		Args:
+			uri: Resource URI
+
+		Returns:
+			True 表示允许访问
+		"""
+		# 先检查是否在禁止列表中
+		for regex in self._blocked_regexes:
+			if regex.match(uri):
+				logger.info(f'Resource access blocked by pattern: {uri}')
+				return False
+
+		# 如果有允许列表，检查是否在列表中
+		if self._allowed_regexes:
+			for regex in self._allowed_regexes:
+				if regex.match(uri):
+					return True
+			# 有允许列表但不匹配任何模式
+			logger.info(f'Resource access not in allowed patterns: {uri}')
+			return False
+
+		# 使用默认设置
+		return self.default_allow
+
+
 class AccessLogger:
 	"""访问日志记录器
 
@@ -347,6 +435,7 @@ class AccessLogger:
 		mask_sensitive: bool = True,
 		masker: SensitiveDataMasker | None = None,
 		log_level: int = logging.INFO,
+		resource_access_control: ResourceAccessControl | None = None,
 	) -> None:
 		"""初始化访问日志记录器
 
@@ -354,11 +443,26 @@ class AccessLogger:
 			mask_sensitive: 是否脱敏敏感信息
 			masker: 自定义脱敏器，None 则使用默认配置
 			log_level: 日志级别
+			resource_access_control: Resource 访问控制器
 		"""
 		self.mask_sensitive = mask_sensitive
 		self.masker = masker or SensitiveDataMasker()
+		self.resource_access_control = resource_access_control
 		self.logger = logging.getLogger(f'{__name__}.access')
 		self.logger.setLevel(log_level)
+
+	def can_access_resource(self, uri: str) -> bool:
+		"""检查是否允许访问 Resource
+
+		Args:
+			uri: Resource URI
+
+		Returns:
+			True 表示允许访问
+		"""
+		if self.resource_access_control:
+			return self.resource_access_control.can_access(uri)
+		return True
 
 	def log_tool_call(
 		self,
@@ -427,11 +531,21 @@ class AccessLogger:
 		# 记录警告日志
 		self.logger.warning(f'Access denied: {log_entry}')
 
-	def log_resource_access(self, uri: str, error: str | None = None) -> None:
+	def log_resource_access(
+		self,
+		uri: str,
+		session_id: str | None = None,
+		user_info: dict[str, Any] | None = None,
+		duration: float | None = None,
+		error: str | None = None
+	) -> None:
 		"""记录 Resource 访问日志
 
 		Args:
 			uri: 资源 URI
+			session_id: 会话 ID（可选）
+			user_info: 用户信息（可选）
+			duration: 访问耗时（秒，可选）
 			error: 错误信息（可选）
 		"""
 		# 构建日志消息
@@ -442,6 +556,13 @@ class AccessLogger:
 			'status': 'success' if error is None else 'failed',
 		}
 
+		# 添加可选信息
+		if session_id:
+			log_entry['session_id'] = session_id
+		if user_info:
+			log_entry['user'] = user_info
+		if duration is not None:
+			log_entry['duration_ms'] = round(duration * 1000, 2)
 		if error is not None:
 			log_entry['error'] = error
 
@@ -450,3 +571,36 @@ class AccessLogger:
 			self.logger.error(f'Resource access failed: {log_entry}')
 		else:
 			self.logger.info(f'Resource access: {log_entry}')
+
+	def log_resource_access_denied(
+		self,
+		uri: str,
+		reason: str,
+		session_id: str | None = None,
+		user_info: dict[str, Any] | None = None
+	) -> None:
+		"""记录 Resource 访问拒绝日志
+
+		Args:
+			uri: 资源 URI
+			reason: 拒绝原因
+			session_id: 会话 ID（可选）
+			user_info: 用户信息（可选）
+		"""
+		# 构建日志消息
+		timestamp = datetime.now().isoformat()
+		log_entry = {
+			'timestamp': timestamp,
+			'resource': uri,
+			'status': 'denied',
+			'reason': reason,
+		}
+
+		# 添加可选信息
+		if session_id:
+			log_entry['session_id'] = session_id
+		if user_info:
+			log_entry['user'] = user_info
+
+		# 记录警告日志
+		self.logger.warning(f'Resource access denied: {log_entry}')

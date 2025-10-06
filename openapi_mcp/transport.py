@@ -7,6 +7,7 @@ MCP Streamable HTTP 传输层
 
 import asyncio
 import json
+import logging
 import uuid
 from collections.abc import AsyncIterator
 from datetime import datetime, timedelta
@@ -19,6 +20,9 @@ from pydantic import BaseModel, Field
 from openapi_mcp.resources.manager import ResourceManager
 from openapi_mcp.security import AccessLogger, SensitiveDataMasker, ToolFilter
 from openapi_mcp.tools.base import BaseMcpTool
+
+# 设置日志记录器
+logger = logging.getLogger(__name__)
 
 # MCP 协议版本
 MCP_PROTOCOL_VERSION = '2025-06-18'
@@ -411,12 +415,13 @@ class McpTransportHandler:
 		}
 
 	async def _handle_resources_read(
-		self, params: dict[str, Any] | None
+		self, params: dict[str, Any] | None, session: McpSession | None = None
 	) -> dict[str, Any]:
 		"""处理 resources/read 方法
 
 		Args:
 			params: 读取参数，包含 uri
+			session: 当前会话（可选）
 
 		Returns:
 			资源内容响应
@@ -428,10 +433,26 @@ class McpTransportHandler:
 			raise ValueError('Missing required parameter: uri')
 
 		uri = params['uri']
+		start_time = datetime.now()
+
+		# 检查资源访问权限
+		if self.access_logger and not self.access_logger.can_access_resource(uri):
+			reason = 'Access denied by resource access control'
+			logger.warning(f"Resource access denied: {uri} - {reason}")
+
+			if self.access_logger:
+				self.access_logger.log_resource_access_denied(
+					uri, reason, session_id=session.session_id if session else None
+				)
+
+			raise ValueError(f'Access denied to resource: {uri}')
 
 		# 记录资源访问
+		logger.info(f"Reading resource: {uri}")
 		if self.access_logger:
-			self.access_logger.log_resource_access(uri)
+			self.access_logger.log_resource_access(
+				uri, session_id=session.session_id if session else None
+			)
 
 		try:
 			contents = await self.resources.read_resource(uri)
@@ -455,9 +476,9 @@ class McpTransportHandler:
 								'data': content.text,  # 对于非文本内容
 							}
 						)
-				return {'contents': masked_contents}
+				result = {'contents': masked_contents}
 			else:
-				return {
+				result = {
 					'contents': [
 						{
 							'type': content.type,
@@ -467,11 +488,40 @@ class McpTransportHandler:
 					]
 				}
 
+			# 记录性能指标
+			duration = (datetime.now() - start_time).total_seconds()
+			logger.info(f"Resource read completed: {uri} in {duration:.3f}s")
+
+			# 记录成功访问
+			if self.access_logger:
+				self.access_logger.log_resource_access(
+					uri,
+					session_id=session.session_id if session else None,
+					duration=duration
+				)
+
+			return result
+
 		except Exception as e:
 			# 记录失败访问
+			duration = (datetime.now() - start_time).total_seconds()
+			logger.error(f"Resource read failed: {uri} in {duration:.3f}s - {e}")
+
 			if self.access_logger:
-				self.access_logger.log_resource_access(uri, error=str(e))
-			raise
+				self.access_logger.log_resource_access(
+					uri,
+					session_id=session.session_id if session else None,
+					duration=duration,
+					error=str(e)
+				)
+
+			# 重新抛出更具体的错误
+			if "not found" in str(e).lower():
+				raise ValueError(f'Resource not found: {uri}') from e
+			elif "permission" in str(e).lower():
+				raise ValueError(f'Access denied to resource: {uri}') from e
+			else:
+				raise RuntimeError(f'Failed to read resource {uri}: {e}') from e
 
 	async def _process_jsonrpc_request(
 		self, request: JsonRpcRequest, session: McpSession
@@ -516,7 +566,7 @@ class McpTransportHandler:
 			elif request.method == 'resources/list':
 				result = await self._handle_resources_list()
 			elif request.method == 'resources/read':
-				result = await self._handle_resources_read(request.params)
+				result = await self._handle_resources_read(request.params, session)
 			else:
 				return JsonRpcResponse(
 					id=request.id,
@@ -615,6 +665,11 @@ class McpTransportHandler:
 				event_data = json.dumps(response_data)
 				yield f'data: {event_data}\n\n'
 
+				# 对于 Resources 操作，可以考虑后续推送更新
+				if jsonrpc_request.method in ('resources/read', 'resources/list'):
+					# TODO: 实现资源变更通知机制
+					pass
+
 				# 保持连接，等待后续消息
 				# TODO: 实现真正的流式响应
 
@@ -628,10 +683,18 @@ class McpTransportHandler:
 				},
 			)
 		else:
-			# 返回 JSON 响应
+			# 返回 JSON 响应，添加缓存控制头
+			headers = {'Mcp-Session-Id': session.session_id}
+
+			# 为 Resources 响应添加缓存控制
+			if jsonrpc_request.method in ('resources/read', 'resources/list'):
+				headers['Cache-Control'] = 'max-age=300, private'  # 5分钟缓存
+			else:
+				headers['Cache-Control'] = 'no-cache'
+
 			return JSONResponse(
 				content=response_data,
-				headers={'Mcp-Session-Id': session.session_id},
+				headers=headers,
 			)
 
 	async def handle_get(

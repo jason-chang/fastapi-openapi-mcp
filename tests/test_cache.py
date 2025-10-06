@@ -6,7 +6,14 @@ import time
 
 import pytest
 
-from openapi_mcp.cache import CacheEntry, OpenApiCache
+from openapi_mcp.cache import (
+	CacheEntry,
+	CacheStats,
+	LRUCache,
+	MultiLevelCache,
+	OpenApiCache,
+	ResourceCache,
+)
 
 
 class TestCacheEntry:
@@ -268,3 +275,380 @@ class TestOpenApiCache:
 		assert result is not None
 		assert result == complex_data
 		assert result['level1']['level2']['level3'] == ['a', 'b', 'c']
+
+
+class TestCacheStats:
+	"""测试缓存统计信息"""
+
+	def test_initial_stats(self) -> None:
+		"""测试初始统计信息"""
+		stats = CacheStats()
+
+		assert stats.hits == 0
+		assert stats.misses == 0
+		assert stats.evictions == 0
+		assert stats.total_sets == 0
+		assert stats.total_gets == 0
+		assert stats.hit_rate == 0.0
+
+	def test_hit_rate_calculation(self) -> None:
+		"""测试命中率计算"""
+		stats = CacheStats()
+
+		# 没有访问时
+		assert stats.hit_rate == 0.0
+
+		# 添加一些访问
+		stats.hits = 8
+		stats.misses = 2
+		stats.total_gets = 10
+
+		assert stats.hit_rate == 0.8
+
+	def test_reset_stats(self) -> None:
+		"""测试重置统计信息"""
+		stats = CacheStats()
+		stats.hits = 10
+		stats.misses = 5
+		stats.evictions = 2
+		stats.total_sets = 15
+		stats.total_gets = 15
+
+		stats.reset()
+
+		assert stats.hits == 0
+		assert stats.misses == 0
+		assert stats.evictions == 0
+		assert stats.total_sets == 0
+		assert stats.total_gets == 0
+
+
+class TestLRUCache:
+	"""测试 LRU 缓存"""
+
+	def test_basic_operations(self) -> None:
+		"""测试基本操作"""
+		cache = LRUCache(max_size=3, default_ttl=60)
+
+		# 设置和获取
+		cache.set('key1', 'value1')
+		assert cache.get('key1') == 'value1'
+		assert 'key1' in cache
+		assert len(cache) == 1
+
+		# 不存在的键
+		assert cache.get('nonexistent') is None
+		assert 'nonexistent' not in cache
+
+	def test_ttl_expiration(self) -> None:
+		"""测试 TTL 过期"""
+		cache = LRUCache(default_ttl=1)  # 1 秒 TTL
+
+		cache.set('key1', 'value1')
+		assert cache.get('key1') == 'value1'
+
+		# 等待过期
+		time.sleep(1.1)
+		assert cache.get('key1') is None
+		assert 'key1' not in cache
+
+	def test_custom_ttl(self) -> None:
+		"""测试自定义 TTL"""
+		cache = LRUCache(default_ttl=60)
+
+		# 使用自定义 TTL
+		cache.set('key1', 'value1', ttl=1)
+		time.sleep(1.1)
+		assert cache.get('key1') is None
+
+		# 使用默认 TTL
+		cache.set('key2', 'value2')
+		assert cache.get('key2') == 'value2'
+
+	def test_lru_eviction(self) -> None:
+		"""测试 LRU 驱逐"""
+		cache = LRUCache(max_size=2)
+
+		cache.set('key1', 'value1')
+		cache.set('key2', 'value2')
+		assert len(cache) == 2
+
+		# 添加第三个键，应该驱逐最旧的
+		cache.set('key3', 'value3')
+		assert len(cache) == 2
+		assert cache.get('key1') is None  # 应该被驱逐
+		assert cache.get('key2') == 'value2'
+		assert cache.get('key3') == 'value3'
+
+	def test_lru_update(self) -> None:
+		"""测试 LRU 更新顺序"""
+		cache = LRUCache(max_size=2)
+
+		cache.set('key1', 'value1')
+		cache.set('key2', 'value2')
+
+		# 访问 key1，使其成为最近使用的
+		cache.get('key1')
+
+		# 添加新键，应该驱逐 key2（不是 key1）
+		cache.set('key3', 'value3')
+		assert cache.get('key1') == 'value1'  # 仍然存在
+		assert cache.get('key2') is None      # 被驱逐
+		assert cache.get('key3') == 'value3'
+
+	def test_stats(self) -> None:
+		"""测试统计信息"""
+		cache = LRUCache(max_size=10)
+
+		stats = cache.get_stats()
+		assert stats['hits'] == 0
+		assert stats['misses'] == 0
+		assert stats['hit_rate'] == 0.0
+		assert stats['evictions'] == 0
+		assert stats['total_sets'] == 0
+		assert stats['total_gets'] == 0
+		assert stats['size'] == 0
+
+		# 添加一些操作
+		cache.set('key1', 'value1')
+		cache.get('key1')  # 命中
+		cache.get('nonexistent')  # 未命中
+
+		stats = cache.get_stats()
+		assert stats['hits'] == 1
+		assert stats['misses'] == 1
+		assert stats['hit_rate'] == 0.5
+		assert stats['total_sets'] == 1
+		assert stats['total_gets'] == 2
+		assert stats['size'] == 1
+
+	def test_cleanup_expired(self) -> None:
+		"""测试清理过期条目"""
+		cache = LRUCache(default_ttl=1)
+
+		cache.set('key1', 'value1')
+		cache.set('key2', 'value2')
+
+		assert len(cache) == 2
+
+		# 等待过期
+		time.sleep(1.1)
+
+		cleaned = cache.cleanup_expired()
+		assert cleaned == 2
+		assert len(cache) == 0
+
+	def test_clear_and_invalidate(self) -> None:
+		"""测试清空和失效"""
+		cache = LRUCache()
+
+		cache.set('key1', 'value1')
+		cache.set('key2', 'value2')
+
+		# 失效单个键
+		assert cache.invalidate('key1') is True
+		assert cache.get('key1') is None
+		assert cache.get('key2') == 'value2'
+
+		# 失效不存在的键
+		assert cache.invalidate('nonexistent') is False
+
+		# 清空所有
+		cache.clear()
+		assert len(cache) == 0
+		assert cache.get_stats()['hits'] == 0
+
+	def test_invalid_parameters(self) -> None:
+		"""测试无效参数"""
+		with pytest.raises(ValueError):
+			LRUCache(max_size=0)
+
+		cache = LRUCache()
+		with pytest.raises(ValueError):
+			cache.set('key1', 'value1', ttl=-1)
+
+
+class TestMultiLevelCache:
+	"""测试多级缓存"""
+
+	def test_basic_operations(self) -> None:
+		"""测试基本操作"""
+		cache = MultiLevelCache(l1_size=2, l2_size=4)
+
+		cache.set('key1', 'value1')
+		assert cache.get('key1') == 'value1'
+
+		# 数据应该在 L1 和 L2 中
+		assert 'key1' in cache.l1_cache
+		assert 'key1' in cache.l2_cache
+
+	def test_l1_miss_l2_hit(self) -> None:
+		"""测试 L1 未命中但 L2 命中"""
+		cache = MultiLevelCache(l1_size=1, l2_size=10)
+
+		# 在 L2 中设置数据
+		cache.l2_cache.set('key2', 'value2')
+
+		# 访问 key2，应该从 L2 提升到 L1
+		assert cache.get('key2') == 'value2'
+		assert 'key2' in cache.l1_cache
+
+	def test_disable_l2(self) -> None:
+		"""测试禁用 L2 缓存"""
+		cache = MultiLevelCache(l1_size=10, enable_l2=False)
+
+		assert cache.l2_cache is None
+
+		cache.set('key1', 'value1')
+		assert cache.get('key1') == 'value1'
+
+		# 数据应该只在 L1 中
+		assert 'key1' in cache.l1_cache
+
+	def test_stats(self) -> None:
+		"""测试统计信息"""
+		cache = MultiLevelCache(l1_size=10, l2_size=10)
+
+		cache.set('key1', 'value1')
+		cache.get('key1')  # 命中
+		cache.get('nonexistent')  # 未命中
+
+		stats = cache.get_stats()
+
+		assert 'l1_cache' in stats
+		assert 'l2_cache' in stats
+		assert 'total_hits' in stats
+		assert 'total_misses' in stats
+		assert 'overall_hit_rate' in stats
+
+		assert stats['total_hits'] == 1
+		assert stats['total_misses'] == 1
+		assert stats['overall_hit_rate'] == 0.5
+
+	def test_invalidate_and_clear(self) -> None:
+		"""测试失效和清空"""
+		cache = MultiLevelCache()
+
+		cache.set('key1', 'value1')
+		cache.set('key2', 'value2')
+
+		# 失效单个键
+		assert cache.invalidate('key1') is True
+		assert cache.get('key1') is None
+		assert cache.get('key2') == 'value2'
+
+		# 清空所有
+		cache.clear()
+		assert cache.get('key1') is None
+		assert cache.get('key2') is None
+
+
+class TestResourceCache:
+	"""测试 Resource 缓存"""
+
+	def test_spec_caching(self) -> None:
+		"""测试 OpenAPI spec 缓存"""
+		cache = ResourceCache()
+
+		spec = {'openapi': '3.0.0', 'info': {'title': 'Test API'}}
+		cache.set_spec(spec)
+
+		cached_spec = cache.get_spec()
+		assert cached_spec == spec
+		assert cached_spec is not spec  # 应该是不同的对象
+
+	def test_endpoints_caching(self) -> None:
+		"""测试端点缓存"""
+		cache = ResourceCache()
+
+		endpoints = [
+			{'path': '/users', 'method': 'GET'},
+			{'path': '/users', 'method': 'POST'}
+		]
+		cache.set_endpoints(endpoints)
+
+		cached_endpoints = cache.get_endpoints()
+		assert cached_endpoints == endpoints
+
+	def test_model_caching(self) -> None:
+		"""测试模型缓存"""
+		cache = ResourceCache()
+
+		model_def = {
+			'type': 'object',
+			'properties': {'id': {'type': 'integer'}}
+		}
+		cache.set_model('User', model_def)
+
+		cached_model = cache.get_model('User')
+		assert cached_model == model_def
+		assert cache.get_model('NonExistent') is None
+
+	def test_tag_endpoints_caching(self) -> None:
+		"""测试标签端点缓存"""
+		cache = ResourceCache()
+
+		tag_endpoints = [
+			{'path': '/users', 'method': 'GET'},
+			{'path': '/users/{id}', 'method': 'GET'}
+		]
+		cache.set_tag_endpoints('user', tag_endpoints)
+
+		cached_endpoints = cache.get_tag_endpoints('user')
+		assert cached_endpoints == tag_endpoints
+		assert cache.get_tag_endpoints('nonexistent') is None
+
+	def test_different_ttl_values(self) -> None:
+		"""测试不同的 TTL 值"""
+		cache = ResourceCache(
+			spec_ttl=1,
+			endpoints_ttl=2,
+			models_ttl=3,
+			tags_ttl=4
+		)
+
+		# 设置所有类型的缓存
+		cache.set_spec({'openapi': '3.0.0'})
+		cache.set_endpoints([{'path': '/test'}])
+		cache.set_model('Test', {'type': 'object'})
+		cache.set_tag_endpoints('test', [{'path': '/test'}])
+
+		# 验证都存在
+		assert cache.get_spec() is not None
+		assert cache.get_endpoints() is not None
+		assert cache.get_model('Test') is not None
+		assert cache.get_tag_endpoints('test') is not None
+
+		# 等待 spec 过期
+		time.sleep(1.1)
+		assert cache.get_spec() is None
+		assert cache.get_endpoints() is not None
+		assert cache.get_model('Test') is not None
+		assert cache.get_tag_endpoints('test') is not None
+
+	def test_clear_and_stats(self) -> None:
+		"""测试清空和统计"""
+		cache = ResourceCache()
+
+		cache.set_spec({'openapi': '3.0.0'})
+		cache.set_endpoints([{'path': '/test'}])
+
+		stats = cache.get_stats()
+		assert stats['size'] > 0
+
+		cache.clear()
+		assert cache.get_spec() is None
+		assert cache.get_endpoints() is None
+		assert cache.get_stats()['size'] == 0
+
+	def test_invalidate_by_type(self) -> None:
+		"""测试按类型失效"""
+		cache = ResourceCache()
+
+		cache.set_spec({'openapi': '3.0.0'})
+		cache.set_endpoints([{'path': '/test'}])
+
+		# 由于使用哈希键，按类型失效会清空所有缓存
+		invalidated = cache.invalidate_by_type('spec')
+		assert cache.get_spec() is None
+		assert cache.get_endpoints() is None
