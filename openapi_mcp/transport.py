@@ -414,6 +414,18 @@ class McpTransportHandler:
 			]
 		}
 
+	async def _handle_resources_templates_list(self) -> dict[str, Any]:
+		"""处理 resources/templates/list 方法
+
+		Returns:
+			资源模板列表响应
+		"""
+		templates = self.resources.list_resource_templates()
+
+		return {
+			'resourceTemplates': templates
+		}
+
 	async def _handle_resources_read(
 		self, params: dict[str, Any] | None, session: McpSession | None = None
 	) -> dict[str, Any]:
@@ -465,6 +477,7 @@ class McpTransportHandler:
 						masked_text = self.data_masker.mask_text(content.text)
 						masked_contents.append(
 							{
+								'uri': uri,
 								'type': content.type,
 								'text': masked_text,
 							}
@@ -472,6 +485,7 @@ class McpTransportHandler:
 					else:
 						masked_contents.append(
 							{
+								'uri': uri,
 								'type': content.type,
 								'data': content.text,  # 对于非文本内容
 							}
@@ -481,6 +495,7 @@ class McpTransportHandler:
 				result = {
 					'contents': [
 						{
+							'uri': uri,
 							'type': content.type,
 							'text': content.text,
 						}
@@ -565,6 +580,8 @@ class McpTransportHandler:
 				result = await self._handle_tools_call(request.params)
 			elif request.method == 'resources/list':
 				result = await self._handle_resources_list()
+			elif request.method == 'resources/templates/list':
+				result = await self._handle_resources_templates_list()
 			elif request.method == 'resources/read':
 				result = await self._handle_resources_read(request.params, session)
 			else:
@@ -666,7 +683,7 @@ class McpTransportHandler:
 				yield f'data: {event_data}\n\n'
 
 				# 对于 Resources 操作，可以考虑后续推送更新
-				if jsonrpc_request.method in ('resources/read', 'resources/list'):
+				if jsonrpc_request.method in ('resources/read', 'resources/list', 'resources/templates/list'):
 					# TODO: 实现资源变更通知机制
 					pass
 
@@ -687,7 +704,7 @@ class McpTransportHandler:
 			headers = {'Mcp-Session-Id': session.session_id}
 
 			# 为 Resources 响应添加缓存控制
-			if jsonrpc_request.method in ('resources/read', 'resources/list'):
+			if jsonrpc_request.method in ('resources/read', 'resources/list', 'resources/templates/list'):
 				headers['Cache-Control'] = 'max-age=300, private'  # 5分钟缓存
 			else:
 				headers['Cache-Control'] = 'no-cache'

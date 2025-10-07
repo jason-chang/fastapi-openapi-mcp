@@ -4,6 +4,8 @@ Resource 管理器
 管理所有 Resource 实例，处理 URI 路由和资源发现。
 """
 
+from typing import Any
+
 from mcp.types import Resource, TextContent
 
 from openapi_mcp.resources.base import BaseResource
@@ -46,6 +48,55 @@ class ResourceManager:
 		    Resource 信息列表
 		"""
 		return [resource.to_resource_info() for resource in self.resources]
+
+	def list_resource_templates(self) -> list[dict[str, Any]]:
+		"""列出所有可用的 Resource Templates
+
+		Returns:
+		    Resource Template 信息列表，包含 URI 模板和参数信息
+		"""
+		templates = []
+		for resource in self.resources:
+			template = {
+				'uriTemplate': resource.uri_template,
+				'name': resource.name,
+				'description': resource.description,
+				'mimeType': resource.mime_type,
+			}
+
+			# 解析 URI 模板参数
+			params = self._parse_template_parameters(resource.uri_template)
+			if params:
+				template['parameters'] = params
+
+			templates.append(template)
+
+		return templates
+
+	def _parse_template_parameters(self, uri_template: str) -> list[dict[str, Any]]:
+		"""解析 URI 模板中的参数
+
+		Args:
+		    uri_template: URI 模板字符串
+
+		Returns:
+		    参数信息列表
+		"""
+		params = []
+		parts = uri_template.split('/')
+
+		for part in parts:
+			# 检查是否是参数 {param_name}
+			if part.startswith('{') and part.endswith('}'):
+				param_name = part[1:-1]
+				params.append({
+					'name': param_name,
+					'description': f'URI parameter: {param_name}',
+					'required': True,
+					'type': 'string'
+				})
+
+		return params
 
 	async def read_resource(self, uri: str) -> list[TextContent]:
 		"""读取 Resource 内容

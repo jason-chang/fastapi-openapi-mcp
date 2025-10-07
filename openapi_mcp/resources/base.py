@@ -105,6 +105,8 @@ class BaseResource(ABC):
 		if self.uri_template == 'openapi://endpoints/{path}':
 			# 提取 openapi://endpoints/ 后面的路径
 			path = uri[len('openapi://endpoints/') :]
+			# URL 解码
+			path = unquote(path)
 			# 如果路径为空，则默认为根路径
 			if not path:
 				path = '/'
