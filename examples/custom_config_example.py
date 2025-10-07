@@ -7,12 +7,12 @@
 from typing import Any
 
 from fastapi import FastAPI
-from openapi_mcp.types import ToolDefinition
 from pydantic import BaseModel, Field
 
 from openapi_mcp import OpenApiMcpServer
 from openapi_mcp.config import McpServerConfig
 from openapi_mcp.security import SecurityFilter
+from openapi_mcp.types import ToolDefinition
 
 
 # 创建示例 FastAPI 应用

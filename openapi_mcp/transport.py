@@ -422,9 +422,7 @@ class McpTransportHandler:
 		"""
 		templates = self.resources.list_resource_templates()
 
-		return {
-			'resourceTemplates': templates
-		}
+		return {'resourceTemplates': templates}
 
 	async def _handle_resources_read(
 		self, params: dict[str, Any] | None, session: McpSession | None = None
@@ -683,7 +681,11 @@ class McpTransportHandler:
 				yield f'data: {event_data}\n\n'
 
 				# 对于 Resources 操作，可以考虑后续推送更新
-				if jsonrpc_request.method in ('resources/read', 'resources/list', 'resources/templates/list'):
+				if jsonrpc_request.method in (
+					'resources/read',
+					'resources/list',
+					'resources/templates/list',
+				):
 					# TODO: 实现资源变更通知机制
 					pass
 
@@ -704,7 +706,11 @@ class McpTransportHandler:
 			headers = {'Mcp-Session-Id': session.session_id}
 
 			# 为 Resources 响应添加缓存控制
-			if jsonrpc_request.method in ('resources/read', 'resources/list', 'resources/templates/list'):
+			if jsonrpc_request.method in (
+				'resources/read',
+				'resources/list',
+				'resources/templates/list',
+			):
 				headers['Cache-Control'] = 'max-age=300, private'  # 5分钟缓存
 			else:
 				headers['Cache-Control'] = 'no-cache'

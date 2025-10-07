@@ -107,8 +107,6 @@ class CacheEntry:
 		return max(0, self.expire_at - time.time())
 
 
-
-
 class LRUCache:
 	"""LRU (Least Recently Used) 缓存实现
 
@@ -457,7 +455,7 @@ class ResourceCache:
 		key = f'resource:{resource_type}'
 		if identifier:
 			key += f':{identifier}'
-		return hashlib.md5(key.encode()).hexdigest()
+		return hashlib.md5(key.encode(), usedforsecurity=False).hexdigest()
 
 	def set_spec(self, spec: dict[str, Any]) -> None:
 		"""缓存 OpenAPI spec

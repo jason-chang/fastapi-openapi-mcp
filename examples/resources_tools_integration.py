@@ -9,10 +9,10 @@ import asyncio
 import json
 
 from fastapi import FastAPI
-from openapi_mcp.client import OpenApiMcpClient
-from openapi_mcp.transport.http import HttpMcpTransport
 
 from openapi_mcp import OpenApiMcpServer
+from openapi_mcp.client import OpenApiMcpClient
+from openapi_mcp.transport.http import HttpMcpTransport
 
 
 # 创建一个更丰富的示例 FastAPI 应用

@@ -136,7 +136,10 @@ class SearchEndpointsTool(BaseMcpTool):
 				]
 
 				# 检查formatter类型并调用相应方法
-				if hasattr(self._formatter, '__class__') and 'Markdown' in self._formatter.__class__.__name__:
+				if (
+					hasattr(self._formatter, '__class__')
+					and 'Markdown' in self._formatter.__class__.__name__
+				):
 					output = self._formatter.format_search_results(
 						results=fake_results,
 						truncated=truncated,
@@ -146,8 +149,13 @@ class SearchEndpointsTool(BaseMcpTool):
 					output = self._formatter.format_search_results(fake_results)
 			else:
 				# 检查formatter类型并调用相应方法
-				if hasattr(self._formatter, '__class__') and 'Markdown' in self._formatter.__class__.__name__:
-					output = self._formatter.format_search_results(results=results, truncated=truncated)
+				if (
+					hasattr(self._formatter, '__class__')
+					and 'Markdown' in self._formatter.__class__.__name__
+				):
+					output = self._formatter.format_search_results(
+						results=results, truncated=truncated
+					)
 				else:
 					output = self._formatter.format_search_results(results)
 

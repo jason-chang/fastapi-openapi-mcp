@@ -8,11 +8,11 @@
 import asyncio
 
 from fastapi import FastAPI
-from openapi_mcp.transport.http import HttpMcpTransport
 from pydantic import BaseModel
 
 from openapi_mcp import OpenApiMcpServer
 from openapi_mcp.config import McpServerConfig
+from openapi_mcp.transport.http import HttpMcpTransport
 
 
 # 应用1: 电商服务
@@ -127,9 +127,7 @@ def create_user_service_app() -> FastAPI:
 
 	# 用户管理
 	@app.get('/users', tags=['users'])
-	async def list_users(
-		skip: int = 0, limit: int = 50, is_active: bool | None = None
-	):
+	async def list_users(skip: int = 0, limit: int = 50, is_active: bool | None = None):
 		"""获取用户列表"""
 		return {'users': [], 'total': 0, 'skip': skip, 'limit': limit}
 

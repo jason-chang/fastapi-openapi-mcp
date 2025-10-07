@@ -89,12 +89,14 @@ class ResourceManager:
 			# 检查是否是参数 {param_name}
 			if part.startswith('{') and part.endswith('}'):
 				param_name = part[1:-1]
-				params.append({
-					'name': param_name,
-					'description': f'URI parameter: {param_name}',
-					'required': True,
-					'type': 'string'
-				})
+				params.append(
+					{
+						'name': param_name,
+						'description': f'URI parameter: {param_name}',
+						'required': True,
+						'type': 'string',
+					}
+				)
 
 		return params
 

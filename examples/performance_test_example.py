@@ -16,10 +16,10 @@ from typing import Any
 import aiohttp
 import psutil
 from fastapi import FastAPI
-from openapi_mcp.client import OpenApiMcpClient
-from openapi_mcp.transport.http import HttpMcpTransport
 
 from openapi_mcp import OpenApiMcpServer
+from openapi_mcp.client import OpenApiMcpClient
+from openapi_mcp.transport.http import HttpMcpTransport
 
 
 # 创建性能测试用的应用

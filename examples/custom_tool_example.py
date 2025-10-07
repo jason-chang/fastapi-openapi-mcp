@@ -11,10 +11,10 @@ from datetime import datetime
 from typing import Any
 
 from fastapi import FastAPI
-from openapi_mcp.types import ToolDefinition, ToolResult
 
 from openapi_mcp import OpenApiMcpServer
 from openapi_mcp.tools.base import BaseTool
+from openapi_mcp.types import ToolDefinition, ToolResult
 
 
 # 创建示例 FastAPI 应用
@@ -586,9 +586,7 @@ class {title.title()}Client {{
 
 		return code
 
-	def _generate_curl_examples(
-		self, spec: dict, filter_tags: list[str] | None
-	) -> str:
+	def _generate_curl_examples(self, spec: dict, filter_tags: list[str] | None) -> str:
 		"""生成 cURL 示例"""
 		info = spec.get('info', {})
 		base_url = spec.get('servers', [{}])[0].get('url', 'https://api.example.com')

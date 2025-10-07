@@ -1,6 +1,6 @@
 [project]
 name = "fastapi-openapi-mcp"
-version = "0.1.0"
+version = "1.0.0"
 description = "将 FastAPI 应用的 OpenAPI 文档转换为 MCP Tools，让 AI 编程助手能够高效查询 API 信息"
 authors = [
 	{ name = "Jason Chang", email = "choayue.chang@gmail.com" }
@@ -34,13 +34,15 @@ dev = [
 	"ruff>=0.8.0",
 	"basedpyright>=1.21.0",
 	"httpx>=0.28.0",  # 用于测试
+	"bandit>=1.7.5",  # 安全扫描
+	"twine>=5.0.0",   # PyPI 发布工具
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/openapi-mcp-server"
-Documentation = "https://github.com/yourusername/openapi-mcp-server#readme"
-Repository = "https://github.com/yourusername/openapi-mcp-server"
-Issues = "https://github.com/yourusername/openapi-mcp-server/issues"
+Homepage = "https://github.com/jason-chang/fastapi-openapi-mcp"
+Documentation = "https://github.com/jason-chang/fastapi-openapi-mcp#readme"
+Repository = "https://github.com/jason-chang/fastapi-openapi-mcp"
+Issues = "https://github.com/jason-chang/fastapi-openapi-mcp/issues"
 
 [build-system]
 requires = ["hatchling"]
@@ -130,4 +132,14 @@ exclude_lines = [
 	"if __name__ == .__main__.:",
 	"if TYPE_CHECKING:",
 	"@abstractmethod",
+]
+
+[dependency-groups]
+dev = [
+    "bandit>=1.8.6",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "pytest-cov>=7.0.0",
+    "pytest-mock>=3.15.1",
+    "twine>=6.2.0",
 ]
