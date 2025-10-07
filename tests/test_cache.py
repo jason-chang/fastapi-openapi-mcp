@@ -393,7 +393,7 @@ class TestLRUCache:
 		# 添加新键，应该驱逐 key2（不是 key1）
 		cache.set('key3', 'value3')
 		assert cache.get('key1') == 'value1'  # 仍然存在
-		assert cache.get('key2') is None      # 被驱逐
+		assert cache.get('key2') is None  # 被驱逐
 		assert cache.get('key3') == 'value3'
 
 	def test_stats(self) -> None:
@@ -563,7 +563,7 @@ class TestResourceCache:
 
 		endpoints = [
 			{'path': '/users', 'method': 'GET'},
-			{'path': '/users', 'method': 'POST'}
+			{'path': '/users', 'method': 'POST'},
 		]
 		cache.set_endpoints(endpoints)
 
@@ -574,10 +574,7 @@ class TestResourceCache:
 		"""测试模型缓存"""
 		cache = ResourceCache()
 
-		model_def = {
-			'type': 'object',
-			'properties': {'id': {'type': 'integer'}}
-		}
+		model_def = {'type': 'object', 'properties': {'id': {'type': 'integer'}}}
 		cache.set_model('User', model_def)
 
 		cached_model = cache.get_model('User')
@@ -590,7 +587,7 @@ class TestResourceCache:
 
 		tag_endpoints = [
 			{'path': '/users', 'method': 'GET'},
-			{'path': '/users/{id}', 'method': 'GET'}
+			{'path': '/users/{id}', 'method': 'GET'},
 		]
 		cache.set_tag_endpoints('user', tag_endpoints)
 
@@ -600,12 +597,7 @@ class TestResourceCache:
 
 	def test_different_ttl_values(self) -> None:
 		"""测试不同的 TTL 值"""
-		cache = ResourceCache(
-			spec_ttl=1,
-			endpoints_ttl=2,
-			models_ttl=3,
-			tags_ttl=4
-		)
+		cache = ResourceCache(spec_ttl=1, endpoints_ttl=2, models_ttl=3, tags_ttl=4)
 
 		# 设置所有类型的缓存
 		cache.set_spec({'openapi': '3.0.0'})
@@ -649,6 +641,6 @@ class TestResourceCache:
 		cache.set_endpoints([{'path': '/test'}])
 
 		# 由于使用哈希键，按类型失效会清空所有缓存
-		invalidated = cache.invalidate_by_type('spec')
+		cache.invalidate_by_type('spec')
 		assert cache.get_spec() is None
 		assert cache.get_endpoints() is None

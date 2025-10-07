@@ -693,6 +693,7 @@ async def test_resources_with_sse_stream(mcp_server, async_client: AsyncClient):
 
 	# 解析 SSE 数据
 	import json
+
 	data_start = content.find('data: ') + 6
 	data_end = content.find('\n\n', data_start)
 	json_data = json.loads(content[data_start:data_end])

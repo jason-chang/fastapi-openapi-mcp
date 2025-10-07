@@ -37,9 +37,7 @@ def sample_app() -> FastAPI:
 def mcp_config() -> OpenApiMcpConfig:
 	"""创建测试用 MCP 配置"""
 	return OpenApiMcpConfig(
-		cache_enabled=False,  # 测试时禁用缓存
 		output_format='markdown',
-		allowed_origins=['http://localhost', 'http://127.0.0.1', 'http://test.com'],
 	)
 
 

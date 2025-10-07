@@ -32,7 +32,7 @@
 
 当项目发生变化时，相应更新相关模块：
 
-- 新增功能 → 更新 `project-structure.md` 和 `examples.md`
+- 新增功能 → 更新 `project-structure.md`
 - 编码规范变更 → 更新 `coding-standards.md`
 - 发现新问题 → 更新 `troubleshooting.md`
 - 开发流程优化 → 更新 `development.md`

@@ -270,7 +270,10 @@ class MarkdownFormatter(BaseFormatter):
 		return self.truncate(result)
 
 	def format_search_results(
-		self, results: list[dict[str, Any]], truncated: bool = False, empty_results: bool = False
+		self,
+		results: list[dict[str, Any]],
+		truncated: bool = False,
+		empty_results: bool = False,
 	) -> str:
 		"""格式化搜索结果为 Markdown
 
@@ -294,7 +297,7 @@ class MarkdownFormatter(BaseFormatter):
 			'summary': '摘要',
 			'description': '描述',
 			'tags': '标签',
-			'all': '全部'
+			'all': '全部',
 		}
 		search_in_text = search_in_display.get(search_in, '全部')
 
@@ -302,8 +305,10 @@ class MarkdownFormatter(BaseFormatter):
 		lines.append(f'📊 **搜索范围**: {search_in_text}\n')
 
 		if empty_results:
-			lines.append(f'📈 **匹配数量**: 0 个接口\n')
-			lines.append('\n📭 没有找到匹配的接口\n\n**建议**:\n- 尝试使用更通用的关键词\n- 检查拼写是否正确\n- 使用正则表达式搜索')
+			lines.append('📈 **匹配数量**: 0 个接口\n')
+			lines.append(
+				'\n📭 没有找到匹配的接口\n\n**建议**:\n- 尝试使用更通用的关键词\n- 检查拼写是否正确\n- 使用正则表达式搜索'
+			)
 			return '\n'.join(lines)
 		else:
 			lines.append(f'📈 **匹配数量**: {len(results)} 个接口\n')
@@ -339,7 +344,7 @@ class MarkdownFormatter(BaseFormatter):
 					'path': '路径',
 					'summary': '摘要',
 					'description': '描述',
-					'tags': '标签'
+					'tags': '标签',
 				}
 				matched_in_text = matched_in_display.get(matched_in, matched_in)
 				lines.append(f'  - *匹配于*: {matched_in_text}')

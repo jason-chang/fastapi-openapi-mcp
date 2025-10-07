@@ -372,7 +372,7 @@ class GenerateExampleTool(BaseMcpTool):
 		json_content = content.get('application/json')
 		if not json_content or not isinstance(json_content, dict):
 			# 使用第一个可用的格式
-			for media_type, media_info in content.items():
+			for _media_type, media_info in content.items():
 				if isinstance(media_info, dict):
 					json_content = media_info
 					break

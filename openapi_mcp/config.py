@@ -17,163 +17,100 @@ logger = logging.getLogger(__name__)
 
 class LogLevel(str, Enum):
 	"""日志级别"""
-	DEBUG = "DEBUG"
-	INFO = "INFO"
-	WARNING = "WARNING"
-	ERROR = "ERROR"
-	CRITICAL = "CRITICAL"
+
+	DEBUG = 'DEBUG'
+	INFO = 'INFO'
+	WARNING = 'WARNING'
+	ERROR = 'ERROR'
+	CRITICAL = 'CRITICAL'
 
 
 class CacheStrategy(str, Enum):
 	"""缓存策略"""
-	NONE = "none"           # 不缓存
-	BASIC = "basic"         # 基础缓存
-	LRU = "lru"            # LRU 缓存
-	MULTI_LEVEL = "multi_level"  # 多级缓存
+
+	NONE = 'none'  # 不缓存
+	BASIC = 'basic'  # 基础缓存
+	LRU = 'lru'  # LRU 缓存
+	MULTI_LEVEL = 'multi_level'  # 多级缓存
 
 
 class PerformanceLevel(str, Enum):
 	"""性能级别"""
-	LOW = "low"           # 低性能模式
-	MEDIUM = "medium"     # 中等性能模式
-	HIGH = "high"         # 高性能模式
-	MAXIMUM = "maximum"   # 最大性能模式
+
+	LOW = 'low'  # 低性能模式
+	MEDIUM = 'medium'  # 中等性能模式
+	HIGH = 'high'  # 高性能模式
+	MAXIMUM = 'maximum'  # 最大性能模式
 
 
 class ResourcesConfig(BaseModel):
 	"""Resources 配置"""
 
-	enabled: bool = Field(default=True, description="是否启用 Resources")
-	cache_ttl: int = Field(
-		default=300,
-		description="Resources 缓存时间（秒）",
-		ge=0
-	)
+	enabled: bool = Field(default=True, description='是否启用 Resources')
+	cache_ttl: int = Field(default=300, description='Resources 缓存时间（秒）', ge=0)
 	max_cache_size: int = Field(
-		default=1000,
-		description="Resources 最大缓存条目数",
-		ge=1
+		default=1000, description='Resources 最大缓存条目数', ge=1
 	)
 	access_control_enabled: bool = Field(
-		default=False,
-		description="是否启用 Resource 访问控制"
+		default=False, description='是否启用 Resource 访问控制'
 	)
 	allowed_patterns: list[str] = Field(
-		default_factory=list,
-		description="允许的 Resource URI 模式"
+		default_factory=list, description='允许的 Resource URI 模式'
 	)
 	blocked_patterns: list[str] = Field(
-		default_factory=list,
-		description="禁止的 Resource URI 模式"
+		default_factory=list, description='禁止的 Resource URI 模式'
 	)
 
 
 class CacheConfig(BaseModel):
 	"""缓存配置"""
 
-	strategy: CacheStrategy = Field(
-		default=CacheStrategy.LRU,
-		description="缓存策略"
-	)
-	l1_size: int = Field(
-		default=100,
-		description="L1 缓存大小",
-		ge=1
-	)
-	l2_size: int = Field(
-		default=1000,
-		description="L2 缓存大小",
-		ge=0
-	)
-	l1_ttl: int | None = Field(
-		default=60,
-		description="L1 缓存 TTL（秒）",
-		ge=0
-	)
-	l2_ttl: int | None = Field(
-		default=3600,
-		description="L2 缓存 TTL（秒）",
-		ge=0
-	)
-	enable_l2: bool = Field(
-		default=True,
-		description="是否启用 L2 缓存"
-	)
-	cleanup_interval: int = Field(
-		default=300,
-		description="缓存清理间隔（秒）",
-		ge=60
-	)
+	strategy: CacheStrategy = Field(default=CacheStrategy.LRU, description='缓存策略')
+	l1_size: int = Field(default=100, description='L1 缓存大小', ge=1)
+	l2_size: int = Field(default=1000, description='L2 缓存大小', ge=0)
+	l1_ttl: int | None = Field(default=60, description='L1 缓存 TTL（秒）', ge=0)
+	l2_ttl: int | None = Field(default=3600, description='L2 缓存 TTL（秒）', ge=0)
+	enable_l2: bool = Field(default=True, description='是否启用 L2 缓存')
+	cleanup_interval: int = Field(default=300, description='缓存清理间隔（秒）', ge=60)
 
 
 class PerformanceConfig(BaseModel):
 	"""性能配置"""
 
 	level: PerformanceLevel = Field(
-		default=PerformanceLevel.MEDIUM,
-		description="性能级别"
+		default=PerformanceLevel.MEDIUM, description='性能级别'
 	)
-	monitoring_enabled: bool = Field(
-		default=True,
-		description="是否启用性能监控"
-	)
-	max_tracked_operations: int = Field(
-		default=100,
-		description="最大跟踪操作数",
-		ge=1
-	)
+	monitoring_enabled: bool = Field(default=True, description='是否启用性能监控')
+	max_tracked_operations: int = Field(default=100, description='最大跟踪操作数', ge=1)
 	slow_operation_threshold: float = Field(
-		default=1.0,
-		description="慢操作阈值（秒）",
-		ge=0.1
+		default=1.0, description='慢操作阈值（秒）', ge=0.1
 	)
-	memory_limit_mb: int | None = Field(
-		default=100,
-		description="内存限制（MB）",
-		ge=1
-	)
-	enable_profiling: bool = Field(
-		default=False,
-		description="是否启用性能分析"
-	)
+	memory_limit_mb: int | None = Field(default=100, description='内存限制（MB）', ge=1)
+	enable_profiling: bool = Field(default=False, description='是否启用性能分析')
 
 
 class SecurityConfig(BaseModel):
 	"""安全配置"""
 
-	auth_required: bool = Field(default=False, description="是否需要认证")
+	auth_required: bool = Field(default=False, description='是否需要认证')
 	allowed_origins: list[str] = Field(
-		default_factory=lambda: ['*'],
-		description="允许的 CORS 来源"
+		default_factory=lambda: ['*'], description='允许的 CORS 来源'
 	)
 	enable_access_logging: bool = Field(
-		default=False,
-		description="是否启用访问日志记录"
+		default=False, description='是否启用访问日志记录'
 	)
-	mask_sensitive_data: bool = Field(
-		default=True,
-		description="是否脱敏敏感数据"
-	)
+	mask_sensitive_data: bool = Field(default=True, description='是否脱敏敏感数据')
 	custom_sensitive_patterns: list[str] = Field(
-		default_factory=list,
-		description="自定义敏感字段模式"
+		default_factory=list, description='自定义敏感字段模式'
 	)
-	tool_filter_enabled: bool = Field(
-		default=False,
-		description="是否启用工具过滤"
-	)
+	tool_filter_enabled: bool = Field(default=False, description='是否启用工具过滤')
 	path_patterns: list[str] = Field(
-		default_factory=list,
-		description="允许的路径模式列表，支持通配符"
+		default_factory=list, description='允许的路径模式列表，支持通配符'
 	)
 	allowed_tags: list[str] = Field(
-		default_factory=list,
-		description="允许的标签列表，为空表示允许所有"
+		default_factory=list, description='允许的标签列表，为空表示允许所有'
 	)
-	blocked_tags: list[str] = Field(
-		default_factory=list,
-		description="禁止的标签列表"
-	)
+	blocked_tags: list[str] = Field(default_factory=list, description='禁止的标签列表')
 
 	@field_validator('allowed_origins')
 	def validate_origins(cls, v):
@@ -183,7 +120,7 @@ class SecurityConfig(BaseModel):
 		# 简单的 URL 格式验证
 		for origin in v:
 			if not (origin.startswith('http://') or origin.startswith('https://')):
-				raise ValueError(f"Invalid origin format: {origin}")
+				raise ValueError(f'Invalid origin format: {origin}')
 		return v
 
 
@@ -191,8 +128,8 @@ class OpenApiMcpConfig(BaseModel):
 	"""OpenAPI MCP Server 配置"""
 
 	# 基础配置
-	debug: bool = Field(default=False, description="是否启用调试模式")
-	log_level: LogLevel = Field(default=LogLevel.INFO, description="日志级别")
+	debug: bool = Field(default=False, description='是否启用调试模式')
+	log_level: LogLevel = Field(default=LogLevel.INFO, description='日志级别')
 
 	# 路由配置
 	prefix: str = Field(default='/openapi-mcp', description='MCP 路由前缀')
@@ -211,20 +148,14 @@ class OpenApiMcpConfig(BaseModel):
 
 	# 子配置
 	resources: ResourcesConfig = Field(
-		default_factory=ResourcesConfig,
-		description="Resources 配置"
+		default_factory=ResourcesConfig, description='Resources 配置'
 	)
-	cache: CacheConfig = Field(
-		default_factory=CacheConfig,
-		description="缓存配置"
-	)
+	cache: CacheConfig = Field(default_factory=CacheConfig, description='缓存配置')
 	performance: PerformanceConfig = Field(
-		default_factory=PerformanceConfig,
-		description="性能配置"
+		default_factory=PerformanceConfig, description='性能配置'
 	)
 	security: SecurityConfig = Field(
-		default_factory=SecurityConfig,
-		description="安全配置"
+		default_factory=SecurityConfig, description='安全配置'
 	)
 
 	# 自定义扩展
@@ -324,7 +255,7 @@ class OpenApiMcpConfig(BaseModel):
 			self.performance.enable_profiling = True
 			self.resources.max_cache_size = 2000
 
-		logger.info(f"Applied performance level: {level.value}")
+		logger.info(f'Applied performance level: {level.value}')
 
 	def validate_config(self) -> list[str]:
 		"""验证配置并返回警告列表
@@ -335,24 +266,39 @@ class OpenApiMcpConfig(BaseModel):
 		warnings = []
 
 		# 检查缓存配置
-		if self.cache.strategy == CacheStrategy.MULTI_LEVEL and not self.cache.enable_l2:
-			warnings.append("Multi-level cache strategy enabled but L2 cache is disabled")
+		if (
+			self.cache.strategy == CacheStrategy.MULTI_LEVEL
+			and not self.cache.enable_l2
+		):
+			warnings.append(
+				'Multi-level cache strategy enabled but L2 cache is disabled'
+			)
 
 		if self.cache.l1_size > 10000:
-			warnings.append(f"Large L1 cache size ({self.cache.l1_size}) may consume significant memory")
+			warnings.append(
+				f'Large L1 cache size ({self.cache.l1_size}) may consume significant memory'
+			)
 
 		# 检查安全配置
 		if not self.security.allowed_origins or '*' in self.security.allowed_origins:
 			if self.security.auth_required:
-				warnings.append("Authentication required but CORS allows all origins")
+				warnings.append('Authentication required but CORS allows all origins')
 
 		# 检查性能配置
-		if self.performance.level == PerformanceLevel.MAXIMUM and self.performance.memory_limit_mb and self.performance.memory_limit_mb < 200:
-			warnings.append("Maximum performance level with low memory limit may cause issues")
+		if (
+			self.performance.level == PerformanceLevel.MAXIMUM
+			and self.performance.memory_limit_mb
+			and self.performance.memory_limit_mb < 200
+		):
+			warnings.append(
+				'Maximum performance level with low memory limit may cause issues'
+			)
 
 		# 检查 Resources 配置
 		if self.resources.enabled and not self.resources.cache_ttl:
-			warnings.append("Resources enabled but cache TTL is 0, may impact performance")
+			warnings.append(
+				'Resources enabled but cache TTL is 0, may impact performance'
+			)
 
 		return warnings
 
@@ -433,17 +379,17 @@ class ConfigManager:
 				try:
 					listener(self._config)
 				except Exception as e:
-					logger.error(f"Config listener error: {e}")
+					logger.error(f'Config listener error: {e}')
 
-			logger.info("Configuration updated successfully")
+			logger.info('Configuration updated successfully')
 			for warning in warnings:
-				logger.warning(f"Configuration warning: {warning}")
+				logger.warning(f'Configuration warning: {warning}')
 
 			return warnings
 
 		except Exception as e:
 			# 恢复之前的配置
-			logger.error(f"Configuration update failed: {e}")
+			logger.error(f'Configuration update failed: {e}')
 			raise
 
 	def add_listener(self, listener: Callable[[OpenApiMcpConfig], None]) -> None:
@@ -485,10 +431,10 @@ class ConfigManager:
 			IndexError: 当索引无效时
 		"""
 		if not self._config_history:
-			raise ValueError("No configuration history available")
+			raise ValueError('No configuration history available')
 
 		if index < -len(self._config_history) or index >= len(self._config_history):
-			raise IndexError(f"Invalid config history index: {index}")
+			raise IndexError(f'Invalid config history index: {index}')
 
 		historical_config = self._config_history[index]
 		return self.update_config(historical_config)
@@ -530,7 +476,7 @@ class ConfigManager:
 		sensitive_keys = [
 			'custom_tools',
 			'tool_filter',
-			'security.custom_sensitive_patterns'
+			'security.custom_sensitive_patterns',
 		]
 
 		for key in sensitive_keys:
@@ -539,7 +485,9 @@ class ConfigManager:
 
 		return config_dict
 
-	def import_config(self, config_data: dict[str, Any], safe: bool = True) -> list[str]:
+	def import_config(
+		self, config_data: dict[str, Any], safe: bool = True
+	) -> list[str]:
 		"""导入配置
 
 		Args:
@@ -554,7 +502,7 @@ class ConfigManager:
 			sensitive_keys = [
 				'custom_tools',
 				'tool_filter',
-				'custom_sensitive_patterns'
+				'custom_sensitive_patterns',
 			]
 
 			for key in sensitive_keys:
@@ -575,7 +523,7 @@ class ConfigManager:
 			temp_config = OpenApiMcpConfig(**config_data)
 			return temp_config.validate_config()
 		except Exception as e:
-			return [f"Configuration validation failed: {e}"]
+			return [f'Configuration validation failed: {e}']
 
 
 # 全局配置管理器实例

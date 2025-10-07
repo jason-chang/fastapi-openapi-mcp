@@ -438,7 +438,7 @@ class McpTransportHandler:
 		# 检查资源访问权限
 		if self.access_logger and not self.access_logger.can_access_resource(uri):
 			reason = 'Access denied by resource access control'
-			logger.warning(f"Resource access denied: {uri} - {reason}")
+			logger.warning(f'Resource access denied: {uri} - {reason}')
 
 			if self.access_logger:
 				self.access_logger.log_resource_access_denied(
@@ -448,7 +448,7 @@ class McpTransportHandler:
 			raise ValueError(f'Access denied to resource: {uri}')
 
 		# 记录资源访问
-		logger.info(f"Reading resource: {uri}")
+		logger.info(f'Reading resource: {uri}')
 		if self.access_logger:
 			self.access_logger.log_resource_access(
 				uri, session_id=session.session_id if session else None
@@ -490,14 +490,14 @@ class McpTransportHandler:
 
 			# 记录性能指标
 			duration = (datetime.now() - start_time).total_seconds()
-			logger.info(f"Resource read completed: {uri} in {duration:.3f}s")
+			logger.info(f'Resource read completed: {uri} in {duration:.3f}s')
 
 			# 记录成功访问
 			if self.access_logger:
 				self.access_logger.log_resource_access(
 					uri,
 					session_id=session.session_id if session else None,
-					duration=duration
+					duration=duration,
 				)
 
 			return result
@@ -505,20 +505,20 @@ class McpTransportHandler:
 		except Exception as e:
 			# 记录失败访问
 			duration = (datetime.now() - start_time).total_seconds()
-			logger.error(f"Resource read failed: {uri} in {duration:.3f}s - {e}")
+			logger.error(f'Resource read failed: {uri} in {duration:.3f}s - {e}')
 
 			if self.access_logger:
 				self.access_logger.log_resource_access(
 					uri,
 					session_id=session.session_id if session else None,
 					duration=duration,
-					error=str(e)
+					error=str(e),
 				)
 
 			# 重新抛出更具体的错误
-			if "not found" in str(e).lower():
+			if 'not found' in str(e).lower():
 				raise ValueError(f'Resource not found: {uri}') from e
-			elif "permission" in str(e).lower():
+			elif 'permission' in str(e).lower():
 				raise ValueError(f'Access denied to resource: {uri}') from e
 			else:
 				raise RuntimeError(f'Failed to read resource {uri}: {e}') from e

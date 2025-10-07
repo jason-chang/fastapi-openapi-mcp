@@ -3,7 +3,6 @@
 """
 
 import time
-from unittest.mock import Mock
 
 import pytest
 
@@ -131,7 +130,7 @@ class TestSlidingWindowMetrics:
 		window = SlidingWindowMetrics()
 
 		# 添加一些调用
-		now = time.time()
+		time.time()
 		window.add(0.1, True)
 		window.add(0.2, True)
 		window.add(0.3, False)
@@ -224,7 +223,7 @@ class TestPerformanceMonitor:
 
 		with pytest.raises(ValueError):
 			with monitor.measure('test_operation'):
-				raise ValueError("Test error")
+				raise ValueError('Test error')
 
 		metrics = monitor.get_metrics('test_operation')
 		assert metrics['total_calls'] == 1
@@ -336,6 +335,7 @@ class TestGlobalMonitor:
 
 	def test_global_monitor_functions(self) -> None:
 		"""测试全局监控器函数"""
+
 		# 使用全局装饰器
 		@measure('global_test_func')
 		def test_func() -> int:

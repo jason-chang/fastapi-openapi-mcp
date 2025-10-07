@@ -4,7 +4,6 @@
 测试新的 4 个核心 Tools 的功能和集成。
 """
 
-
 import pytest
 
 from openapi_mcp.server import OpenApiMcpServer
@@ -137,6 +136,7 @@ class TestSearchEndpointsTool:
 		result = await tool.execute(regex='[invalid')
 		assert result.isError
 		assert '无效的正则表达式' in result.content[0].text
+
 
 class TestGenerateExampleTool:
 	"""测试 GenerateExampleTool"""

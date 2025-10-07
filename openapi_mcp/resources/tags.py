@@ -65,7 +65,7 @@ class TagsListResource(BaseResource):
 		tag_counts = {}
 		paths = spec.get('paths', {})
 
-		for path, path_item in paths.items():
+		for _path, path_item in paths.items():
 			for method, operation in path_item.items():
 				if method.upper() in [
 					'GET',

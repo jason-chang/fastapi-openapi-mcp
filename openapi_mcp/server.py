@@ -154,6 +154,7 @@ class OpenApiMcpServer:
 		# 导入工具
 		from openapi_mcp.tools.examples import GenerateExampleTool
 		from openapi_mcp.tools.search import SearchEndpointsTool
+
 		# 注册 Tools
 		self.tools.append(SearchEndpointsTool(self))  # 增强的搜索工具
 		self.tools.append(GenerateExampleTool(self))  # 新增的示例生成工具

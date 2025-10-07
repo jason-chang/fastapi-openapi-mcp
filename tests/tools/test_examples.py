@@ -187,9 +187,7 @@ class TestGenerateExampleTool:
 		tool = GenerateExampleTool(mcp_server)
 
 		custom_url = 'https://api.myapp.com/v1'
-		result = await tool.execute(
-			path='/users', method='GET', server_url=custom_url
-		)
+		result = await tool.execute(path='/users', method='GET', server_url=custom_url)
 		output = get_text_content(result)
 
 		assert not result.isError
@@ -285,7 +283,6 @@ class TestGenerateExampleTool:
 		result = await tool.execute(path='/users', method='')
 		assert result.isError
 
-	
 	async def test_special_characters_in_path(self, examples_test_app: FastAPI):
 		"""测试路径中的特殊字符"""
 		mcp_server = OpenApiMcpServer(examples_test_app)
@@ -305,9 +302,7 @@ class TestGenerateExampleTool:
 
 		# 使用包含中文的自定义服务器 URL
 		custom_url = 'https://示例.服务器.com'
-		result = await tool.execute(
-			path='/users', method='GET', server_url=custom_url
-		)
+		result = await tool.execute(path='/users', method='GET', server_url=custom_url)
 		output = get_text_content(result)
 
 		assert not result.isError

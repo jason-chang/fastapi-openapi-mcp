@@ -224,7 +224,7 @@ class TestToolsManagement:
 	def test_register_builtin_tools(self, simple_app: FastAPI):
 		"""测试内置 tools 注册"""
 		server = OpenApiMcpServer(simple_app)
-		assert len(server.tools) == 9  # 应该有 9 个内置 tools
+		assert len(server.tools) == 9  # 应该有 2 个内置 tools
 		assert server.tools[0].name == 'list_openapi_endpoints'
 
 	def test_get_registered_tools(self, simple_app: FastAPI):

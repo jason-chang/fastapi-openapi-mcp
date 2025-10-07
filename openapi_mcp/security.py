@@ -537,7 +537,7 @@ class AccessLogger:
 		session_id: str | None = None,
 		user_info: dict[str, Any] | None = None,
 		duration: float | None = None,
-		error: str | None = None
+		error: str | None = None,
 	) -> None:
 		"""记录 Resource 访问日志
 
@@ -550,7 +550,7 @@ class AccessLogger:
 		"""
 		# 构建日志消息
 		timestamp = datetime.now().isoformat()
-		log_entry = {
+		log_entry: dict[str, Any] = {
 			'timestamp': timestamp,
 			'resource': uri,
 			'status': 'success' if error is None else 'failed',
@@ -577,7 +577,7 @@ class AccessLogger:
 		uri: str,
 		reason: str,
 		session_id: str | None = None,
-		user_info: dict[str, Any] | None = None
+		user_info: dict[str, Any] | None = None,
 	) -> None:
 		"""记录 Resource 访问拒绝日志
 
@@ -589,7 +589,7 @@ class AccessLogger:
 		"""
 		# 构建日志消息
 		timestamp = datetime.now().isoformat()
-		log_entry = {
+		log_entry: dict[str, Any] = {
 			'timestamp': timestamp,
 			'resource': uri,
 			'status': 'denied',

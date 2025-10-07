@@ -9,7 +9,12 @@ from typing import Any
 
 import pytest
 
-from openapi_mcp.security import AccessLogger, ResourceAccessControl, SensitiveDataMasker, ToolFilter
+from openapi_mcp.security import (
+	AccessLogger,
+	ResourceAccessControl,
+	SensitiveDataMasker,
+	ToolFilter,
+)
 
 
 class TestToolFilter:
@@ -480,7 +485,7 @@ class TestResourceAccessControl:
 		"""测试允许模式"""
 		control = ResourceAccessControl(
 			allowed_patterns=['openapi://spec', 'openapi://endpoints/*'],
-			default_allow=False
+			default_allow=False,
 		)
 
 		# 允许的资源
@@ -498,7 +503,7 @@ class TestResourceAccessControl:
 		control = ResourceAccessControl(
 			allowed_patterns=['openapi://*', 'public://*'],
 			blocked_patterns=['openapi://admin/*'],
-			default_allow=False
+			default_allow=False,
 		)
 
 		# 允许的资源
@@ -518,7 +523,7 @@ class TestResourceAccessControl:
 		"""测试通配符模式"""
 		control = ResourceAccessControl(
 			allowed_patterns=['openapi://*/spec', 'openapi://v*/endpoints'],
-			default_allow=False
+			default_allow=False,
 		)
 
 		# 匹配通配符
@@ -536,7 +541,7 @@ class TestResourceAccessControl:
 		control = ResourceAccessControl(
 			allowed_patterns=['openapi://spec'],
 			blocked_patterns=['openapi://spec'],
-			default_allow=True
+			default_allow=True,
 		)
 
 		# 禁止列表应该优先级更高
@@ -564,7 +569,9 @@ class TestResourceAccessControlIntegration:
 		logger = AccessLogger()
 
 		with caplog.at_level(logging.INFO):
-			logger.log_resource_access('openapi://spec', session_id='session123', duration=0.5)
+			logger.log_resource_access(
+				'openapi://spec', session_id='session123', duration=0.5
+			)
 
 		assert 'openapi://spec' in caplog.text
 		assert 'session123' in caplog.text
@@ -578,7 +585,7 @@ class TestResourceAccessControlIntegration:
 			logger.log_resource_access_denied(
 				'openapi://admin/users',
 				reason='Blocked by pattern',
-				session_id='session123'
+				session_id='session123',
 			)
 
 		assert 'openapi://admin/users' in caplog.text

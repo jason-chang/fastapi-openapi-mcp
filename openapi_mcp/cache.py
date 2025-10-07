@@ -4,13 +4,12 @@ OpenAPI MCP Server 缓存机制
 提供多级缓存策略、LRU 缓存、性能监控等高级缓存功能。
 """
 
-import asyncio
 import hashlib
 import logging
 import time
 from collections import OrderedDict
-from typing import Any, NamedTuple
 from dataclasses import dataclass
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +17,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class CacheStats:
 	"""缓存统计信息"""
+
 	hits: int = 0
 	misses: int = 0
 	evictions: int = 0
@@ -40,6 +40,7 @@ class CacheStats:
 		self.total_gets = 0
 
 
+@dataclass
 class CacheEntry:
 	"""缓存条目
 
@@ -53,7 +54,11 @@ class CacheEntry:
 		last_accessed: 最后访问时间
 	"""
 
-	__slots__ = ('value', 'expire_at', 'created_at', 'access_count', 'last_accessed')
+	value: Any
+	expire_at: float | None
+	created_at: float
+	access_count: int
+	last_accessed: float
 
 	def __init__(self, value: Any, expire_at: float | None) -> None:
 		"""初始化缓存条目
@@ -102,37 +107,6 @@ class CacheEntry:
 		return max(0, self.expire_at - time.time())
 
 
-class CacheEntry:
-	"""缓存条目
-
-	存储缓存值和过期时间戳。
-
-	Attributes:
-		value: 缓存的值
-		expire_at: 过期时间戳（秒），None 表示永不过期
-	"""
-
-	__slots__ = ('value', 'expire_at')
-
-	def __init__(self, value: Any, expire_at: float | None) -> None:
-		"""初始化缓存条目
-
-		Args:
-			value: 要缓存的值
-			expire_at: 过期时间戳（秒），None 表示永不过期
-		"""
-		self.value = value
-		self.expire_at = expire_at
-
-	def is_expired(self) -> bool:
-		"""检查缓存是否已过期
-
-		Returns:
-			True 表示已过期，False 表示未过期
-		"""
-		if self.expire_at is None:
-			return False
-		return time.time() > self.expire_at
 
 
 class LRUCache:
@@ -255,10 +229,7 @@ class LRUCache:
 		Returns:
 			清理的条目数量
 		"""
-		expired_keys = [
-			key for key, entry in self._cache.items()
-			if entry.is_expired()
-		]
+		expired_keys = [key for key, entry in self._cache.items() if entry.is_expired()]
 
 		for key in expired_keys:
 			del self._cache[key]
@@ -316,7 +287,7 @@ class MultiLevelCache:
 		l2_size: int = 1000,
 		l1_ttl: int | None = 60,
 		l2_ttl: int | None = 3600,
-		enable_l2: bool = True
+		enable_l2: bool = True,
 	) -> None:
 		"""初始化多级缓存
 
@@ -427,7 +398,7 @@ class MultiLevelCache:
 				self._total_hits / (self._total_hits + self._total_misses)
 				if (self._total_hits + self._total_misses) > 0
 				else 0.0
-			)
+			),
 		}
 
 		if self.l2_cache:
@@ -454,10 +425,10 @@ class ResourceCache:
 
 	def __init__(
 		self,
-		spec_ttl: int = 3600,      # OpenAPI spec 缓存 1 小时
+		spec_ttl: int = 3600,  # OpenAPI spec 缓存 1 小时
 		endpoints_ttl: int = 1800,  # 端点列表缓存 30 分钟
-		models_ttl: int = 900,      # 模型信息缓存 15 分钟
-		tags_ttl: int = 1800        # 标签信息缓存 30 分钟
+		models_ttl: int = 900,  # 模型信息缓存 15 分钟
+		tags_ttl: int = 1800,  # 标签信息缓存 30 分钟
 	) -> None:
 		"""初始化 Resource 缓存
 
@@ -483,9 +454,9 @@ class ResourceCache:
 		Returns:
 			缓存键
 		"""
-		key = f"resource:{resource_type}"
+		key = f'resource:{resource_type}'
 		if identifier:
-			key += f":{identifier}"
+			key += f':{identifier}'
 		return hashlib.md5(key.encode()).hexdigest()
 
 	def set_spec(self, spec: dict[str, Any]) -> None:

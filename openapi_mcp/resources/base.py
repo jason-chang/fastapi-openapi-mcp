@@ -9,6 +9,7 @@ from typing import Any, ClassVar
 from urllib.parse import unquote
 
 from mcp.types import Resource, TextContent
+from pydantic import AnyUrl
 
 
 class BaseResource(ABC):
@@ -128,7 +129,7 @@ class BaseResource(ABC):
 		    符合 MCP 规范的 Resource 对象
 		"""
 		return Resource(
-			uri=self.uri_template,
+			uri=AnyUrl(self.uri_template),
 			name=self.name,
 			description=self.description,
 			mimeType=self.mime_type,

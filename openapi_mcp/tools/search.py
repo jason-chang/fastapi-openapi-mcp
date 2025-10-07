@@ -121,8 +121,8 @@ class SearchEndpointsTool(BaseMcpTool):
 			search_in_param = kwargs.get('search_in', 'all')
 			if not results and keyword_or_regex:
 				# 创建一个假结果对象用于格式化，只包含搜索信息
-				output = self._formatter.format_search_results(
-					[{
+				fake_results = [
+					{
 						'keyword': keyword_or_regex,
 						'search_in': search_in_param,
 						'method': '',
@@ -132,12 +132,24 @@ class SearchEndpointsTool(BaseMcpTool):
 						'tags': '',
 						'matched_in': '',
 						'deprecated': False,
-					}],
-					truncated,
-					empty_results=True
-				)
+					}
+				]
+
+				# 检查formatter类型并调用相应方法
+				if hasattr(self._formatter, '__class__') and 'Markdown' in self._formatter.__class__.__name__:
+					output = self._formatter.format_search_results(
+						results=fake_results,
+						truncated=truncated,
+						empty_results=True,
+					)
+				else:
+					output = self._formatter.format_search_results(fake_results)
 			else:
-				output = self._formatter.format_search_results(results, truncated)
+				# 检查formatter类型并调用相应方法
+				if hasattr(self._formatter, '__class__') and 'Markdown' in self._formatter.__class__.__name__:
+					output = self._formatter.format_search_results(results=results, truncated=truncated)
+				else:
+					output = self._formatter.format_search_results(results)
 
 			return CallToolResult(content=[TextContent(type='text', text=output)])
 
